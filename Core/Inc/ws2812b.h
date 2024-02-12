@@ -21,6 +21,7 @@ extern "C" {
 
 #include "stm32g4xx_hal.h"
 #include "stdbool.h"
+#include <stdio.h>
 
 class ws2812b
 {

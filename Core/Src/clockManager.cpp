@@ -10,12 +10,12 @@
 
 uint8_t bcdToDecimal(uint8_t bcd)
 {
-	return ((bcd / 10) << 4) & (bcd % 10);
+	return ((bcd >> 4) * 10) + (bcd & 0xf);
 }
 
 uint8_t decimalToBcd(uint8_t dec)
 {
-	return ((dec >> 4) * 10) & (dec & 0xf);
+	return ((dec / 10) << 4) | (dec % 10);
 }
 
 clockManager::clockManager(TIM_HandleTypeDef * timer, uint32_t channel,
@@ -36,7 +36,7 @@ void clockManager::setupRTC()
 	//Set the Control Register on the DS3231 to enable the square wave output and set it to 1Hz
 	rtcDataBuffer = 0x00;
 	halRetval = HAL_I2C_Mem_Write(clockI2c, 0xD0, DS3231_CONTROL_REGISTER, 1, &rtcDataBuffer, 1, 1000);
-	if (halRetval == HAL_OK)
+	if (halRetval != HAL_OK)
 	{
 		sprintf(serialBuffer, "Unable to setup RTC\r\n");
 
@@ -62,6 +62,8 @@ bool clockManager::getTime()
 		{
 			hours = bcdToDecimal(buffer[1]);
 			hours %= 12;
+			if(hours == 0)
+				hours = 12;
 			hours = decimalToBcd(hours);
 			currentTime[0] = hours >> 4;
 			currentTime[1] = hours & 0xf;
@@ -102,14 +104,15 @@ void clockManager::updateAll()
 
 	if (getTime())
 	{
-		sprintf(serialBuffer, "%d%d:%d%d\r\n", currentTime[0], currentTime[1], currentTime[2], currentTime[3]);
+		//sprintf(serialBuffer, "%d%d:%d%d\r\n", currentTime[0], currentTime[1], currentTime[2], currentTime[3]);
 		for (int i = 0; i < 4; i++)
 			updateSection(i, currentTime[3 - i]);
 	}
 	else
+	{
 		sprintf(serialBuffer, "RTC Error\r\n");
-
-	CDC_Transmit_FS((uint8_t *) serialBuffer, strlen(serialBuffer));
+		CDC_Transmit_FS((uint8_t *) serialBuffer, strlen(serialBuffer));
+	}
 
 	ledGrid.send();
 }
@@ -188,4 +191,33 @@ void clockManager::updateSection(uint8_t sectionNum, uint8_t count)
 void clockManager::pulseCompleted()
 {
 	ledGrid.timerEnded();
+}
+
+void clockManager::setTime(uint8_t seconds, uint8_t minutes, uint8_t hours, uint8_t dayOfWeek, uint8_t date, uint8_t month, uint8_t year)
+{
+	HAL_StatusTypeDef halRetval;
+	char serialBuffer[32];
+	uint8_t rtcDataBuffer[7];
+
+	if(seconds > 59 || minutes > 59 || hours > 23 ||
+			dayOfWeek == 0 || dayOfWeek > 7 ||
+			date == 0 || date > 31 ||
+			month == 0 || month > 12 ||
+			year > 99) return;
+
+	rtcDataBuffer[0] = decimalToBcd(seconds);
+	rtcDataBuffer[1] = decimalToBcd(minutes);
+	rtcDataBuffer[2] = decimalToBcd(hours);
+	rtcDataBuffer[3] = decimalToBcd(dayOfWeek);
+	rtcDataBuffer[4] = decimalToBcd(date);
+	rtcDataBuffer[5] = decimalToBcd(month);
+	rtcDataBuffer[6] = decimalToBcd(year);
+
+	halRetval = HAL_I2C_Mem_Write(clockI2c, 0xD0, DS3231_TIME_SECOND_REGISTER, 1, rtcDataBuffer, 7, 1000);
+	if (halRetval != HAL_OK)
+	{
+		sprintf(serialBuffer, "Unable to set time\r\n");
+
+		CDC_Transmit_FS((uint8_t *) serialBuffer, strlen(serialBuffer));
+	}
 }

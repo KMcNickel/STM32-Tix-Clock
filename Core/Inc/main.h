@@ -31,7 +31,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "stdbool.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -55,7 +55,14 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+#ifdef __cplusplus
+#define EXTERNC extern "C"
+#else
+#define EXTERNC
+#endif
+EXTERNC void setTime(uint8_t seconds, uint8_t minutes, uint8_t hours);
+EXTERNC void setTimeType(bool is24HourTime);
+EXTERNC void setClockFrequency(uint8_t frequency);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

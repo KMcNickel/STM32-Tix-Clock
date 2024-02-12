@@ -77,6 +77,7 @@ public:
 	void setupRTC();
 	void updateAll();
 	void pulseCompleted();
+	void setTime(uint8_t seconds, uint8_t minutes, uint8_t hours, uint8_t dayOfWeek, uint8_t date, uint8_t month, uint8_t year);
 };
 
 

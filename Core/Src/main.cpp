@@ -25,6 +25,7 @@
 #include "stdbool.h"
 #include "clockManager.h"
 #include "usbd_cdc_if.h"
+#include "usb_dfu.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -79,7 +80,7 @@ uint8_t secondsSinceLastClockUpdate = 0;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+  USB_CheckDfuEnabled();
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -106,7 +107,7 @@ int main(void)
   MX_RNG_Init();
   MX_USB_Device_Init();
   /* USER CODE BEGIN 2 */
-
+  setvbuf(stdout, NULL, _IONBF, 0); //Disable buffering on stdout
   clock.setupRTC();
   /* USER CODE END 2 */
 
@@ -364,6 +365,26 @@ void HAL_GPIO_EXTI_Callback(uint16_t gpioPin)
 	{
 		secondsSinceLastClockUpdate++;
 	}
+}
+
+void setTime(uint8_t seconds, uint8_t minutes, uint8_t hours)
+{
+	clock.setTime(seconds, minutes, hours, 1, 1, 1, 0);
+}
+
+void setTimeType(bool is24HourTime)
+{
+	clock.use24HourTime = is24HourTime;
+}
+
+void setClockFrequency(uint8_t frequency)
+{
+	clockUpdateFrequency = frequency;
+}
+
+int __io_putchar(int ch)
+{
+	return (int) ITM_SendChar(ch);
 }
 /* USER CODE END 4 */
 
